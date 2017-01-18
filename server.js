@@ -18,114 +18,257 @@ app.get('/', function (req, res) {
     res.sendfile(__dirname + '/index.html');
 });
 
-//var layer = {id: 0, x: 0, y: 0};
+///Declarations
+var parse = require('csv-parse');
+var fs = require('fs');
+fs.readFile('./public/assets/map3.csv', (err, data) => {
+    if (err) throw err;
+    parse(data, function (err, output) {
+        tileMap = output.slice();//console.log(tileMap);
+    });
+});
+
 var player = {
     id: 0,
     x: 0,
     y: 0,
-    velocity: 0,
+    velocityX: 0,
+    velocityY: 0,
     rightArrowPressing: false,
     leftArrowPressing: false,
     upArrowPressing: false,
-    downArrowPressing: false,
-    moveX: () => {
-        "use strict";
-        this.x += this.velocity;
-    },
-    moveY: () => {
-        "use strict";
-        this.y += this.velocity
-    }
+    downArrowPressing: false/*
+     moveX: () => {
+     "use strict";
+     this.x += this.velocity;
+     },
+     moveY: () => {
+     "use strict";
+     this.y += this.velocity
+     }*/
 }
 
-var VELOCITY_X=32;
-var VELOCITY_Y=32;
 
-var SOCKETS = {};
-var PLAYERS = {};
+var clienMessage = {
+    id: 0,
+    clientId: 0
+}
+var tileMap = [];
+var requestQueue = [];
+var socketsList = [];
+var playersList = [];
 
-var count = 0;
-
+///Connection events
 io.on('connection', function (socket) {
-    /*
-     socket.emit('news', { hello: 'world' });
-     socket.on('my other event', function (data) {
-     console.log(data);
-     });
-
-     socket.on('rm', function (data) {
-     console.log(count++);
-     console.log(data);
-
-     socket.emit('move',{v:640})
-     });
-     */
-    socket.id = Math.random();
-    SOCKETS[socket.id] = socket;//заносим соединение в массив
-    PLAYERS[socket.id] = {
-        id: socket.id,
-        x:288 /*96Math.floor(Math.random() * 6400 / 64) * 64 - 32*/,
-        y: 5664/*6176/*5766Math.floor(Math.random() * 6400 / 64) * 64 - 32*/,
-        velocity:0,
-        rightArrowPressing: 'false',
-        leftArrowPressing: 'false',
-        upArrowPressing: 'false',
-        downArrowPressing: 'false',
-        moveX: () => {
-            this.x += this.velocity;
-        },
-        moveY: () => {
-            this.y += this.velocity;
-        }
-    };
-    socket.emit('spawn', {id: socket.id, x: PLAYERS[socket.id].x, y: PLAYERS[socket.id].y});
-    console.log('Подключен игрок с id ' + socket.id);
+    requestQueue.push({type: 'connect', socket: socket});
 
     socket.on('disconnect', () => {
         "use strict";
-        delete SOCKETS[socket.id];
-        delete PLAYERS[socket.id];
-        console.log('Отсоединился игрок с id ' + socket.id);
+        requestQueue.push({type: 'disconnect', socket: socket});
     })
 
-    socket.on('keyEvent', function (key) {//кнопка ужерживвается
-        console.log(key.name + ' ' + key.state);
-        switch (key.name) {
-            case 'right':
-                PLAYERS[socket.id].rightArrowPressing = key.state;
-                break;
-            case 'left':
-                PLAYERS[socket.id].leftArrowPressing = key.state;
-                break;
-            case 'up':
-                PLAYERS[socket.id].upArrowPressing = key.state;
-                break;
-            case 'down':
-                PLAYERS[socket.id].downArrowPressing = key.state;
-                break;
-        }
-        PLAYERS[socket.id].x=key.x;
-        PLAYERS[socket.id].y=key.y;
-
-
+    socket.on('keys', (data) => {//data.key, data.state, data.clientID
+        "use strict";
+        if (data.key === 'right'
+            || data.key === 'left'
+            || data.key === 'up'
+            || data.key === 'down'
+            || data.key === 'x'
+            || data.key === 'z')
+            requestQueue.push({
+                type: 'keys',
+                clientID: data.clientID,
+                key: data.key,
+                state: data.state,
+                x: data.x,
+                y: data.y,
+                velocityX: data.velocityX,
+                velocityY: data.velocityY
+            })
     });
-    /*socket.on('Xnm', function (data) {//остановить
-     socket.emit('move', {v: 0});
+    /*
+     socket.on('keyState', function (key) {//кнопка ужерживвается
+     console.log(key.name + ' ' + key.state);
+     switch (key.name) {
+     case 'right':
+     playersList[socket.id].rightArrowPressing = key.state;
+     break;
+     case 'left':
+     playersList[socket.id].leftArrowPressing = key.state;
+     break;
+     case 'up':
+     playersList[socket.id].upArrowPressing = key.state;
+     break;
+     case 'down':
+     playersList[socket.id].downArrowPressing = key.state;
+     break;
+     case 'x':
+     playersList[socket.id
+     }
+     playersList[socket.id].x = key.x;
+     playersList[socket.id].y = key.y;\
      });*/
 });
 
+//Server loop
 setInterval(() => {
-    var packet = [];
+        "use strict";
 
-    for (var i in PLAYERS) {
-        /*if (PLAYERS[i].rightArrowPressing==='true' || PLAYERS[i].leftArrowPressing==='true') {
-            //PLAYERS[i].x+=PLAYERS[i].velocity;
-            //PLAYERS[i].moveX;
-        }*/
-        packet.push({id: PLAYERS[i].id, x: PLAYERS[i].x, y: PLAYERS[i].y});
+        for (let i in requestQueue) {
+            let message = requestQueue.shift();
+            switch (message.type) {
+                case'connect':
+                    connect(message);//добавили игрока
+                    break;
+                case 'disconnect':
+                    disconnect(message);
+                    break;
+                case 'keys':
+                    keys(message);//            requestQueue.push({type: 'keys', socket: socket, key: data.key, state: data.state})
+                    break;
+            }
+        }
+
+        let packet = [];
+        for (let i in playersList) {
+            packet.push({
+                id: playersList[i].id,
+                x: playersList[i].x,
+                y: playersList[i].y,
+                velocityX: playersList[i].velocityX,
+                velocityY: playersList[i].velocityY,
+            });
+        }
+        /*
+         let isMapChanged = false;
+
+         if (isMapChanged) {
+         packet.push(tileMap);
+         }*/
+        io.sockets.emit('players', packet);
+        //console.log(packet);
+
+    },
+    20 //milliseconds
+);
+
+var connect = (message) => {
+    'use strict';    //requestQueue.push({type: 'connect', socket: socket});
+    message.socket.id = Math.random();
+    socketsList[message.socket.id] = message.socket;//заносим соединение в массив
+    playersList[message.socket.id] = {
+        id: message.socket.id,
+        x: 288 /*96Math.floor(Math.random() * 6400 / 64) * 64 - 32*/,
+        y: 5664/*6176/*5766Math.floor(Math.random() * 6400 / 64) * 64 - 32*/,
+        velocityX: 0,
+        velocityY: 0,
+        rightArrowPressing: 'false',
+        leftArrowPressing: 'false',
+        upArrowPressing: 'false',
+        downArrowPressing: 'false'
+        /*,
+         moveX: () => {
+         this.x += this.velocity;
+         },
+         moveY: () => {
+         this.y += this.velocity;
+         }
+         */
+    };
+    message.socket.emit('connected', {id: message.socket.id});
+    console.log('Подключен игрок с id ' + message.socket.id);
+};
+var disconnect = (message) => {
+    'use strict';    //requestQueue.push({type: 'disconnect', socket: socket});
+    delete socketsList[message.socket.id];
+    delete playersList[message.socket.id];
+    console.log('Отсоединился игрок с id ' + message.socket.id);
+};
+var keys = (message) => {
+    'use strict';
+    //            requestQueue.push({type: 'keys', clientID: data.clientID, key: data.key, state: data.state,   data.velocityX, data.velocityY})
+
+    playersList[message.clientID].x = message.x;
+    playersList[message.clientID].y = message.y;
+    playersList[message.clientID].velocityX = message.velocityX;
+    playersList[message.clientID].velocityY = message.velocityY;
+    switch (message.key) {
+        case 'right':
+            playersList[message.clientID].rightArrowPressing = message.state;
+            break;
+        case 'left':
+            playersList[message.clientID].leftArrowPressing = message.state;
+            break;
+        case 'up':
+            playersList[message.clientID].upArrowPressing = message.state;
+            break;
+        case 'x':
+            /*
+             playersList[message.clientID].downArrowPressing = message.state;
+             break;case 'down':
+             playersList[message.clientID].downArrowPressing = message.state;
+             */
+            break;
+        case 'z':
+            //playersList[message.clientID].downArrowPressing = message.state;
+            break;
     }
-    io.sockets.emit('newPositions', packet);
+};
 
-}, 1000 / 10);
+/*
+ 1.Spawn
+ Клиент отправляет запрос на подключение
+ ->сервер добавляет в очередь сообщений
 
 
+
+
+ ->генерирует позицию и добавляет игрока в массив игроков
+ ->отправляет ID
+ //массив адресов всех игроков(с их состояниями нажатой клавиши), массив координат сундуков
+
+ Клиент отправляет команду на сервер
+ ->сервер добавляет в очередь сообщений
+ ->проверяет (...на расстояние,velocity,collision b2players)
+ ->устаналиает новые координаты игрока и velocity
+ ->отправляе массив адресов всех игроков (с их нажатой клавишей и velocity)
+
+
+
+
+ Команды игрока(нажата или была отпущена)
+ 1. Вправо 2
+ 2. Влево 2
+ 3. Вверх 2
+ 4. Вниз 2
+ 5. Копать справа- 1 состояние
+ 6. Копать слева - 1 состояние
+
+
+
+
+
+
+
+
+ //отправлять координаты игроков только в четверти часьи мира
+ 1. подключается
+ сервер отправляет ему id
+ и добавляет его в список игроков
+
+ 2.
+
+
+
+
+ цикл сервера
+ отправка  параметров всем игроков всем
+
+
+
+
+
+
+
+
+ */
