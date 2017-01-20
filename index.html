@@ -24,7 +24,8 @@
 
 
     var players = [];
-    const VELOCITY = 192;
+    var playersGroup;
+    const VELOCITY = 256;
     ////////////////////////////////////////
     /*var SAFE_ZONE_WIDTH = 1920;
      var SAFE_ZONE_HEIGHT = 1080;
@@ -120,6 +121,20 @@
         cursors = game.input.keyboard.createCursorKeys();
         game.physics.startSystem(Phaser.Physics.ARCADE);
 
+        playersGroup = game.add.physicsGroup();
+
+        for (var i = 0; i < 50; i++) {
+            var c = group.create(game.rnd.between(100, 770), game.rnd.between(0, 570), 'veggies', game.rnd.between(0, 35));
+            c.body.mass = -100;
+        }
+
+        for (var i = 0; i < 20; i++) {
+            var c = group.create(game.rnd.between(100, 770), game.rnd.between(0, 570), 'veggies', 17);
+        }
+
+
+
+
         game.input.keyboard.onUpCallback = (e) => {
             //({type: 'keys', clientID: data.clientID, key: data.key, state: data.state,   data.velocityX, data.velocityY})
 
@@ -182,6 +197,7 @@
         };
         game.input.addPointer();
         //layer.debug = true;
+
     }
 
     function update() {
@@ -399,11 +415,31 @@
                 game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
 
             }
+            if (player)
+                socket.emit('keys', {
+                    clientID: clid,
+                    key: 'up',
+                    state: 'false',
+                    x: player.body.x,
+                    y: player.body.y,
+                    velocityX: player.body.velocity.x,
+                    velocityY: player.body.velocity.y
+                });
         }
         else if (player.body.onFloor() && tileUnderUnder.index == 3 && tileCurrent.index != 2) {
 
             game.add.tween(player).to({y: game.math.snapTo(player.y + 64, 64, 32)}, 50, Phaser.Easing.Linear.None, true);
             player.body.allowGravity = true;
+            if (player)
+                socket.emit('keys', {
+                    clientID: clid,
+                    key: 'up',
+                    state: 'false',
+                    x: player.body.x,
+                    y: player.body.y,
+                    velocityX: player.body.velocity.x,
+                    velocityY: player.body.velocity.y
+                });
         }
 
         /*else if ( tileUnderUnder.index == 1) {
@@ -411,18 +447,30 @@
          console.log("111");
          }
          */
+        /*
+         if(player)
+         socket.emit('keys', {
+         clientID: clid,
+         key: 'up',
+         state: 'false',
+         x: player.body.x,
+         y: player.body.y,
+         velocityX: player.body.velocity.x,
+         velocityY: player.body.velocity.y
+         });
+         */
     }
     var clid;
     function render() {
         if (game.time.fps > 30)
-            game.debug.text(game.time.fps || '--', 2, 14, "#00ff00");
+            game.debug.text(game.time.fps || '--', 200, 200, "#00ff00");
         else
-            game.debug.text(game.time.fps || '--', 2, 14, "#ff1800");
+            game.debug.text(game.time.fps || '--', 200, 200, "#ff1800");
         /* game.debug.pointer(game.input.mousePointer);
          game.debug.pointer(game.input.pointer1);
          */
-
-        game.debug.text(player.body.onFloor().toString(), 300, 10);
+        /*
+         1      game.debug.text(player.body.onFloor().toString(), 300, 10);
 
         game.debug.text(tileLeftSide.index + ' ' + tileCurrent.index + ' ' + tileRightSide.index, 10, 10);
         game.debug.text(tileLeftUnder.index + ' ' + tileUnderUnder.index + ' ' + tileRightUnder.index, 10, 20);
@@ -438,18 +486,32 @@
 
 
         game.debug.text(aspectRatio, 10, 200);
-
+         */
         // game.debug.text(collided, 10, 100);
+
+
+        game.debug.body(player);
+        for (let i in players) {
+            game.debug.body(players[i]);
+            console.log(players[i]);
+        }
+
     }
 
     ////////////////////////////////////////////////////////////////////////
     socket.on('connected', function (data) {
-        players[data.id] = player;
+        //players[data.id] = player;
         clid = data.id;
         console.log('Получен id: ' + data.id);
     });
 
     socket.on('players', function (data) {
+        for (let i in players) {
+
+
+            players[i].destroy();
+        }
+        players = [];
         /*packet.push({        id: playersList[i].id,
          x: playersList[i].x,
          y: playersList[i].y,
@@ -466,43 +528,49 @@
          player.body.collideWorldBounds = true;
          */
         for (let i = 0; i < data.length; i++) {
-
-            if (!players[data[i].id]) {
-                // players[data[i].id].x=game.math.snapTo(data[i].x, 64,32);
-                //players[data[i].id].y=game.math.snapTo(data[i].y, 64,32);
-                players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
-                players[data[i].id].anchor.set(0.5);
-                game.physics.arcade.enable(players[data[i].id]);
-                //game.math.snapTo(players[data[i].id].x, 64)}, 1, Phaser.Easing.Linear.None, true);
-
-                //players[data[i].id].body.gravity.y = 1000;
-                //players[data[i].id].body.collideWorldBounds = true;
-            } else if (clid == data[i].id) {
+            if (clid == data[i].id) {
 
                 player.body.x = data[i].x;
                 player.body.y = data[i].y;
-                players[data[i].id].anchor.set(0.5);
+                game.debug.body(player);
+                //players[data[i].id].anchor.set(0.5);
                 //game.physics.arcade.enable(player);
                 //game.camera.follow(player);
                 //player.body.gravity.y = 1000;
 
                 //player.body.collideWorldBounds = true;
-                player.animations.add('left', [0, 1, 2, 3], 10, true);
-                player.animations.add('right', [5, 6, 7, 8], 10, true);
 
+            } else {
+                if (players[data[i].id]) {//is
+                    players[data[i].id].x = data[i].x;
+                    players[data[i].id].y = data[i].y;
+
+                    //players[data[i].id].anchor.set(0.5);
+                    //players[data[i].id].y = game.math.snapTo(data[i].y, 64, 32);
+                    //players[data[i].id].y = game.math.snapTo(data[i].y, 64, 32);
+
+                    /*                    players[data[i].id].body.velocity.x = data[i].velocityX;
+                     players[data[i].id].body.velocity.y = data[i].velocityY;
+                     */
+                } else {
+                    players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
+                    //game.physics.enable( players[data[i].id] , Phaser.Physics.ARCADE);
+                    game.physics.arcade.enable(players[data[i].id]);
+                    players[data[i].id].animations.add('left', [0, 1, 2, 3], 10, true);
+                    players[data[i].id].animations.add('right', [5, 6, 7, 8], 10, true);
+                    //players[data[i].id].animations.play('right');
+                    players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                    players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+
+                    //players[data[i].id].anchor.set(0.5);
+                    //game.physics.arcade.enable(players[data[i].id]);
+                    //players[data[i].id].body.gravity.y = 1000;
+                    /*
+                     players[data[i].id].body.velocity.x = data[i].velocityX;
+                     players[data[i].id].body.velocity.y = data[i].velocityY;
+                     */
+                }
             }
-            else if (players[data[i].id]) {
-                players[data[i].id].x = game.math.snapTo(data[i].x, 64, 32);
-                players[data[i].id].y = game.math.snapTo(data[i].y, 64, 32);
-
-
-                players[data[i].id].body.velocity.x = data[i].velocityX;
-                players[data[i].id].body.velocity.y = data[i].velocityY;
-                players[data[i].id].anchor.set(0.5);
-
-
-            }
-            //console.log(data);
         }
     });
 

@@ -146,10 +146,10 @@ setInterval(() => {
          packet.push(tileMap);
          }*/
         io.sockets.emit('players', packet);
-        //console.log(packet);
+    console.log(packet);
 
     },
-    20 //milliseconds
+    1000 / 10 //milliseconds
 );
 
 var connect = (message) => {
@@ -180,38 +180,54 @@ var connect = (message) => {
 };
 var disconnect = (message) => {
     'use strict';    //requestQueue.push({type: 'disconnect', socket: socket});
-    delete socketsList[message.socket.id];
+    //delete socketsList[message.socket.id];
     delete playersList[message.socket.id];
-    console.log('Отсоединился игрок с id ' + message.socket.id);
+
+    /*
+     let sock=new Promise(()=>{
+     socketsList.slice(message.socket.id,1);
+     });
+     let pla=new Promise(()=>{
+     playersList.slice(message.socket.id,1);
+     });
+     Promise.all([sock,pla]).then(()=>{
+     message.socket.disconnect();
+     console.log('Отсоединился игрок с id ' + message.socket.id);
+     });
+     */ //console.log('Отсоединился игрок с id ' + message.socket.id);
+
+
+
 };
 var keys = (message) => {
     'use strict';
     //            requestQueue.push({type: 'keys', clientID: data.clientID, key: data.key, state: data.state,   data.velocityX, data.velocityY})
-
-    playersList[message.clientID].x = message.x;
-    playersList[message.clientID].y = message.y;
-    playersList[message.clientID].velocityX = message.velocityX;
-    playersList[message.clientID].velocityY = message.velocityY;
-    switch (message.key) {
-        case 'right':
-            playersList[message.clientID].rightArrowPressing = message.state;
-            break;
-        case 'left':
-            playersList[message.clientID].leftArrowPressing = message.state;
-            break;
-        case 'up':
-            playersList[message.clientID].upArrowPressing = message.state;
-            break;
-        case 'x':
-            /*
-             playersList[message.clientID].downArrowPressing = message.state;
-             break;case 'down':
-             playersList[message.clientID].downArrowPressing = message.state;
-             */
-            break;
-        case 'z':
-            //playersList[message.clientID].downArrowPressing = message.state;
-            break;
+    if (playersList[message.clientID]) {
+        playersList[message.clientID].x = message.x;
+        playersList[message.clientID].y = message.y;
+        playersList[message.clientID].velocityX = message.velocityX;
+        playersList[message.clientID].velocityY = message.velocityY;
+        switch (message.key) {
+            case 'right':
+                playersList[message.clientID].rightArrowPressing = message.state;
+                break;
+            case 'left':
+                playersList[message.clientID].leftArrowPressing = message.state;
+                break;
+            case 'up':
+                playersList[message.clientID].upArrowPressing = message.state;
+                break;
+            case 'x':
+                /*
+                 playersList[message.clientID].downArrowPressing = message.state;
+                 break;case 'down':
+                 playersList[message.clientID].downArrowPressing = message.state;
+                 */
+                break;
+            case 'z':
+                //playersList[message.clientID].downArrowPressing = message.state;
+                break;
+        }
     }
 };
 
