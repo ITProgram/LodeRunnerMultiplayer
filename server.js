@@ -86,6 +86,17 @@ io.on('connection', function (socket) {
                 velocityY: data.velocityY
             })
     });
+    socket.on('playerEnemyCollision', (data) => {//data.enemyID, socket
+        "use strict";
+        if (Math.abs(playersList [socket.id].x - playersList[data.enemyID].x) < 128
+            && Math.abs(playersList [socket.id].y - playersList[data.enemyID].y) < 128
+        )
+            requestQueue.push({
+                type: 'collisionPlayerEnemy',
+                socket: socket,
+                enemyID: data.clientID
+            })
+    });
     /*
      socket.on('keyState', function (key) {//кнопка ужерживвается
      console.log(key.name + ' ' + key.state);
@@ -126,6 +137,9 @@ setInterval(() => {
                 case 'keys':
                     keys(message);//            requestQueue.push({type: 'keys', socket: socket, key: data.key, state: data.state})
                     break;
+                case 'collisionPlayerEnemy':
+                    collisionPlayerEnemy(message);//            requestQueue.push({type: 'collisionPlayerEnemy', socket:socket, enemyID})
+                    break;
             }
         }
 
@@ -146,7 +160,7 @@ setInterval(() => {
          packet.push(tileMap);
          }*/
         io.sockets.emit('players', packet);
-    console.log(packet);
+    console.log(packet.length);
 
     },
     1000 / 10 //milliseconds
@@ -197,7 +211,6 @@ var disconnect = (message) => {
      */ //console.log('Отсоединился игрок с id ' + message.socket.id);
 
 
-
 };
 var keys = (message) => {
     'use strict';
@@ -229,6 +242,13 @@ var keys = (message) => {
                 break;
         }
     }
+};
+var collisionPlayerEnemy = (message) => {
+    'use strict';
+    //            requestQueue.push({type: 'collisionPlayerEnemy', socket:socket, enemyID: data.clientID})
+    delete playersList[message.enemyID];
+    delete playersList[message.socket.id];
+    message.socket.disconnect(true);
 };
 
 /*
