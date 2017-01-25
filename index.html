@@ -25,24 +25,14 @@
 </div>
 
 <script type="text/javascript">
-    function resizeCanvas() {
-//        game.scale.refresh();
-    }
-
     $(document).ready(() => {
-        $("#play").click(() => {
-            $("#welcome").fadeToggle();
-            socket = io.connect('http://192.168.100.4');
-        });
-
-        var socket;
-        //var socket = io.connect('http://192.168.100.4');
 
 
+        var socket;//var socket = io.connect('http://192.168.100.4');
         var players = [];
-        var playersGroup;
+        var playersGroup = [];
         const VELOCITY = 256;
-        ////////////////////////////////////////
+        var sizeX = 1920;
         /*var SAFE_ZONE_WIDTH = 1920;
          var SAFE_ZONE_HEIGHT = 1080;
          var w = window.innerWidth;//* pixelRatio,
@@ -72,30 +62,18 @@
          //var game = new Phaser.Game(SAFE_ZONE_WIDTH + extraWidth, SAFE_ZONE_HEIGHT + extraHeight, Phaser.CANVAS, 'game_div');
 
          */
-        ///////////////////////////////////////////////
-
-        var sizeX = 1920;
         var sizeY = 1080;
         var aspectRatio = window.innerWidth / window.innerHeight;
-        //var aspectRatio;
         if (aspectRatio != 1920 / 1080 || aspectRatio != 1080 / 1920) {
             if (window.innerWidth > window.innerHeight)
                 sizeX = 1080 * aspectRatio;
             else
                 sizeY = 1920 * aspectRatio;
         }
-
-        var game = new Phaser.Game(sizeX, sizeY, Phaser.CANVAS, '', {
-            preload: preload,
-            create: create,
-            update: update,
-            render: render
-        });
         var map;
         var layer;
         var player;
-        var clid;
-
+        var clid;////////////////////////////
         var tileCurrent;
         var tileUpperUpper;
         var tileRightSide;
@@ -103,17 +81,26 @@
         var tileUnderUnder;
         var tileLeftSide;
         var tileLeftUnder;
+        var isPlayerEnemyCollision = false;
+
+        //create game world
+        var game = new Phaser.Game(sizeX, sizeY, Phaser.CANVAS, '', {
+            preload: preload,
+            create: create,
+            update: update,
+            render: render
+        });
 
         function preload() {
             game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
             game.scale.pageAlignHorizontally = true;
             game.scale.pageAlignVertically = true;
 
-            game.load.tilemap('map', "assets/map3.csv", null, Phaser.Tilemap.CSV);
-            //game.load.image('tileset', "assets/NES - Lode Runner - Tileset.png");
-            game.load.image('tileset', "assets/bricksx64.png");
             game.load.spritesheet('dude', 'assets/dude.png', 64, 64);
-        }
+            game.load.tilemap('map', "assets/map3.csv", null, Phaser.Tilemap.CSV);
+            game.load.image('tileset', "assets/bricksx64.png");
+
+        }//load resources
 
         function create() {
             map = game.add.tilemap('map', 64, 64);
@@ -122,41 +109,26 @@
 
             layer.resizeWorld();
             map.setCollision(0);
-            game.time.advancedTiming = true;    // for debug
+            game.time.advancedTiming = true;    // for debug fps
 
-            player = game.add.sprite(256, 6000, 'dude');
-            player.anchor.set(0.5);
-            game.physics.arcade.enable(player);
-            game.camera.follow(player);
-            player.body.gravity.y = 1000;
-            player.animations.add('left', [0, 1, 2, 3], 10, true);
-            player.animations.add('right', [5, 6, 7, 8], 10, true);
 
-            //player.body.collideWorldBounds = true;
-            //player.body.TILE_BITS=64;
-
-            ////////////////////
             cursors = game.input.keyboard.createCursorKeys();
             game.physics.startSystem(Phaser.Physics.ARCADE);
 
-            playersGroup = game.add.physicsGroup();
-
-            /*
-             for (var i = 0; i < 20; i++) {
-             var c = group.create(game.rnd.between(100, 770), game.rnd.between(0, 570), 'veggies', 17);
-             }
-             */
-
+            playersGroup = game.add.group();
+            //playersGroup = game.add.physicsGroup();
 
             game.input.keyboard.onUpCallback = (e) => {
+                //geme.input.enbled=true;
                 //({type: 'keys', clientID: data.clientID, key: data.key, state: data.state,   data.velocityX, data.velocityY})
+                //если игрок создан - тогда обрабатывать отжатия клавиш
 
                 if (e.keyCode == cursors.right.keyCode) {
                     player.body.velocity.x = 0;
-                    //               game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                    //game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
 
-                    socket.emit('keys', {
-                        clientID: clid,
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
                         key: 'right',
                         state: 'false',
                         x: player.body.x,
@@ -167,8 +139,8 @@
                 } else if (e.keyCode == cursors.left.keyCode) {
                     player.body.velocity.x = 0;
                     //             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                    socket.emit('keys', {
-                        clientID: clid,
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
                         key: 'right',
                         state: 'false',
                         x: player.body.x,
@@ -181,8 +153,8 @@
                         game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
                         player.body.velocity.y = 0;
                     }
-                    socket.emit('keys', {
-                        clientID: clid,
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
                         key: 'right',
                         state: 'false',
                         x: player.body.x,
@@ -195,8 +167,8 @@
                         game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
                         player.body.velocity.y = 0;
                     }
-                    socket.emit('keys', {
-                        clientID: clid,
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
                         key: 'right',
                         state: 'false',
                         x: player.body.x,
@@ -207,281 +179,264 @@
                 } else if (e.keyCode == Phaser.KeyCode.G) {
                     player.body.gravity.y = 1000;
                 }
-            };
+
+
+            }
             game.input.addPointer();
-            //layer.debug = true;
-
-        }
-
-        function playerEnemyCollision(player1, enemy) {
-
-            player1.kill();
-            enemy.kill();
-            socket.emit('playerEnemyCollision', {
-                enemyID: enemy.id,
-            });
         }
 
         function update() {
-            game.physics.arcade.collide(player, playersGroup, playerEnemyCollision, null, this);
+            if (player !== undefined && player.id !== undefined) {
+                if (game.physics.arcade.collide(player, playersGroup, playerEnemyCollision, null, this))
+                //if (game.physics.arcade.overlap(player, players, playerEnemyCollision, null, this))
+                    isPlayerEnemyCollision = true;
 
-            var collideSprvsLayer = game.physics.arcade.collide(player, layer);
+                var collideSprvsLayer = game.physics.arcade.collide(player, layer);
 
-            tileCurrent = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64), layer.getTileY(Math.floor(player.y / 64) * 64));
-            tileUpperUpper = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64), layer.getTileY(Math.floor(player.y / 64) * 64) - 1);
-            tileRightSide = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) + 1, layer.getTileY(Math.floor(player.y / 64) * 64));
-            tileRightUnder = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) + 1, layer.getTileY(Math.floor(player.y / 64) * 64) + 1);
-            tileUnderUnder = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64), layer.getTileY(Math.floor(player.y / 64) * 64) + 1);
-            tileLeftSide = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) - 1, layer.getTileY(Math.floor(player.y / 64) * 64));
-            tileLeftUnder = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) - 1, layer.getTileY(Math.floor(player.y / 64) * 64) + 1);
+                tileCurrent = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64), layer.getTileY(Math.floor(player.y / 64) * 64));
+                tileUpperUpper = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64), layer.getTileY(Math.floor(player.y / 64) * 64) - 1);
+                tileRightSide = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) + 1, layer.getTileY(Math.floor(player.y / 64) * 64));
+                tileRightUnder = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) + 1, layer.getTileY(Math.floor(player.y / 64) * 64) + 1);
+                tileUnderUnder = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64), layer.getTileY(Math.floor(player.y / 64) * 64) + 1);
+                tileLeftSide = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) - 1, layer.getTileY(Math.floor(player.y / 64) * 64));
+                tileLeftUnder = map.getTile(layer.getTileX(Math.floor(player.x / 64) * 64) - 1, layer.getTileY(Math.floor(player.y / 64) * 64) + 1);
 
 
-            if (cursors.left.isDown) {//&& player.body.onFloor()
-                player.body.velocity.x = -VELOCITY;
-                player.animations.play('left');
-                socket.emit('keys', {
-                    clientID: clid,
-                    key: 'left',
-                    state: 'false',
-                    x: player.body.x,
-                    y: player.body.y,
-                    velocityX: player.body.velocity.x,
-                    velocityY: player.body.velocity.y
-                });
+                if (cursors.left.isDown) {//&& player.body.onFloor()
+                    player.body.velocity.x = -VELOCITY;
+                    player.animations.play('left');
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
+                        key: 'left',
+                        state: 'false',
+                        x: player.body.x,
+                        y: player.body.y,
+                        velocityX: player.body.velocity.x,
+                        velocityY: player.body.velocity.y
+                    });
 
-            }
-            else if (cursors.right.isDown /*&& (player.body.onFloor() )*/) {
-                player.body.velocity.x = VELOCITY;
-                /*socket.emit('keyEvent', {
-                 name: 'right',
-                 state: 'true',
-                 x: Math.floor(player.body.x),
-                 y: Math.floor(player.body.y)
-                 });
-                 */
-                player.animations.play('right');
-                socket.emit('keys', {
-                    clientID: clid,
-                    key: 'right',
-                    state: 'false',
-                    x: player.body.x,
-                    y: player.body.y,
-                    velocityX: player.body.velocity.x,
-                    velocityY: player.body.velocity.y
-                });
-            }
-            /*
-             //ВНИЗ
-             if (cursors.down.isDown && ((tileCurrent.index == 2)
-             || (tileCurrent.index = 1 && tileUnderUnder.index == 2))) {
-             player.body.velocity.y = VELOCITY;
-             if (tileUnderUnder.index != 2)
-             player.body.allowGravity = true;
-             //socket.emit('keyEvent', {name: 'down', state: 'true', x: player.body.x, y: player.body.y});
-             //player.animations.play('right');
-             }//ВВЕРХ
-             else if (cursors.up.isDown) {
-             if ((tileCurrent.index == 2)) {
-             player.body.allowGravity = false;
-             player.body.velocity.y = -VELOCITY;
-             //                game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-
-             }
-             else if (tileCurrent.index = 1 && tileUnderUnder.index == 2) {
-             // player.body.allowGravity = true;
-             game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-
-             }//player.body.touching.down**
-             }
-             *///
-            else if (cursors.up.isDown) {
-                if ((tileCurrent.index == 2 )) {
-                    player.body.allowGravity = false;
-                    player.body.velocity.y = -VELOCITY;
-                    /*по Х*/
-                    game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
                 }
-
-                else if (tileCurrent.index == 1 && tileUnderUnder.index == 2) {
-                    player.body.allowGravity = false;
-
-                    game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-
-                }//player.body.touching.down**
-                socket.emit('keys', {
-                    clientID: clid,
-                    key: 'up',
-                    state: 'false',
-                    x: player.body.x,
-                    y: player.body.y,
-                    velocityX: player.body.velocity.x,
-                    velocityY: player.body.velocity.y
-                });
-
-            }
-            //ВНИЗ
-            else if (cursors.down.isDown) {
-                if (tileUnderUnder.index == 2 && tileCurrent.index == 2) {
-                    player.body.velocity.y = VELOCITY;
-                    game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                }
-                else if (tileCurrent.index != 2 && tileUnderUnder.index != 2) {
-                    if (!player.body.allowGravity)
-                        player.body.allowGravity = true;
-                }
-                else if (tileCurrent.index == 1 && tileUnderUnder.index == 2) {
-                    player.body.velocity.y = VELOCITY;
-                    game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-
-                } else if (tileCurrent.index == 2 && tileUnderUnder.index == 1) {
-                    player.body.velocity.y = VELOCITY;
-                    game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                }
-                //socket.emit('keyEvent', {name: 'down', state: 'true', x: player.body.x, y: player.body.y});
-                socket.emit('keys', {
-                    clientID: clid,
-                    key: 'down',
-                    state: 'false',
-                    x: player.body.x,
-                    y: player.body.y,
-                    velocityX: player.body.velocity.x,
-                    velocityY: player.body.velocity.y
-                });
-
-            }
-            /*//ВНИЗ
-             else if (cursors.down.isDown /*&&((tileCurrent.index == 2)
-             || (tileCurrent.index = 1 && tileUnderUnder.index == 2))**) {
-             player.body.velocity.y = VELOCITY;
-             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-             if (tileUnderUnder.index != 2) {
-             player.body.allowGravity = true;
-             }
-             //socket.emit('keyEvent', {name: 'down', state: 'true', x: player.body.x, y: player.body.y});
-             }
-             */
-
-            else if (game.input.keyboard.isDown(Phaser.KeyCode.X)) {
-                if (tileRightSide.index != 0 && tileRightUnder.index == 0 && (tileUnderUnder.index == 0 || tileUnderUnder.index == 2)) {
-                    game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                    map.putTile(3, tileRightUnder.x, tileRightUnder.y);
+                else if (cursors.right.isDown /*&& (player.body.onFloor() )*/) {
+                    player.body.velocity.x = VELOCITY;
+                    /*socket.emit('keyEvent', {
+                     name: 'right',
+                     state: 'true',
+                     x: Math.floor(player.body.x),
+                     y: Math.floor(player.body.y)
+                     });
+                     */
+                    player.animations.play('right');
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
+                        key: 'right',
+                        state: 'false',
+                        x: player.body.x,
+                        y: player.body.y,
+                        velocityX: player.body.velocity.x,
+                        velocityY: player.body.velocity.y
+                    });
                 }
                 /*
+                 //ВНИЗ
+                 if (cursors.down.isDown && ((tileCurrent.index == 2)
+                 || (tileCurrent.index = 1 && tileUnderUnder.index == 2))) {
+                 player.body.velocity.y = VELOCITY;
+                 if (tileUnderUnder.index != 2)
+                 player.body.allowGravity = true;
+                 //socket.emit('keyEvent', {name: 'down', state: 'true', x: player.body.x, y: player.body.y});
+                 //player.animations.play('right');
+                 }//ВВЕРХ
+                 else if (cursors.up.isDown) {
+                 if ((tileCurrent.index == 2)) {
+                 player.body.allowGravity = false;
+                 player.body.velocity.y = -VELOCITY;
+                 //                game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+
+                 }
+                 else if (tileCurrent.index = 1 && tileUnderUnder.index == 2) {
+                 // player.body.allowGravity = true;
+                 game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+
+                 }//player.body.touching.down**
+                 }
+                 *///
+                else if (cursors.up.isDown) {
+                    if ((tileCurrent.index == 2 )) {
+                        player.body.allowGravity = false;
+                        player.body.velocity.y = -VELOCITY;
+                        /*по Х*/
+                        game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                    }
+
+                    else if (tileCurrent.index == 1 && tileUnderUnder.index == 2) {
+                        player.body.allowGravity = false;
+
+                        game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+
+                    }//player.body.touching.down**
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
+                        key: 'up',
+                        state: 'false',
+                        x: player.body.x,
+                        y: player.body.y,
+                        velocityX: player.body.velocity.x,
+                        velocityY: player.body.velocity.y
+                    });
+
+                }
+                //ВНИЗ
+                else if (cursors.down.isDown) {
+                    if (tileUnderUnder.index == 2 && tileCurrent.index == 2) {
+                        player.body.velocity.y = VELOCITY;
+                        game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                    }
+                    else if (tileCurrent.index != 2 && tileUnderUnder.index != 2) {
+                        if (!player.body.allowGravity)
+                            player.body.allowGravity = true;
+                    }
+                    else if (tileCurrent.index == 1 && tileUnderUnder.index == 2) {
+                        player.body.velocity.y = VELOCITY;
+                        game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+
+                    } else if (tileCurrent.index == 2 && tileUnderUnder.index == 1) {
+                        player.body.velocity.y = VELOCITY;
+                        game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                    }
+                    //socket.emit('keyEvent', {name: 'down', state: 'true', x: player.body.x, y: player.body.y});
+                    if (socket) socket.emit('keys', {
+                        clientID: player.id,
+                        key: 'down',
+                        state: 'false',
+                        x: player.body.x,
+                        y: player.body.y,
+                        velocityX: player.body.velocity.x,
+                        velocityY: player.body.velocity.y
+                    });
+
+                }
+                /*//ВНИЗ
+                 else if (cursors.down.isDown /*&&((tileCurrent.index == 2)
+                 || (tileCurrent.index = 1 && tileUnderUnder.index == 2))**) {
+                 player.body.velocity.y = VELOCITY;
+                 game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                 if (tileUnderUnder.index != 2) {
+                 player.body.allowGravity = true;
+                 }
+                 //socket.emit('keyEvent', {name: 'down', state: 'true', x: player.body.x, y: player.body.y});
+                 }
+                 */
+
+                else if (game.input.keyboard.isDown(Phaser.KeyCode.X)) {
+                    if (tileRightSide.index != 0 && tileRightUnder.index == 0 && (tileUnderUnder.index == 0 || tileUnderUnder.index == 2)) {
+                        game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                        map.putTile(3, tileRightUnder.x, tileRightUnder.y);
+                    }
+                    /*
+                     if (tileRightUnder.index == 0
+                     && tileRightSide.index != 0
+                     && tileRightUnder.index != 1) {
+                     game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                     map.putTile(1, tileRightUnder.x, tileRightUnder.y);
+                     }
+                     */
+
+                }
+                //справа копать
+                /*else if (game.input.keyboard.isDown(Phaser.KeyCode.X) && player.body.onFloor()) {
+
                  if (tileRightUnder.index == 0
                  && tileRightSide.index != 0
                  && tileRightUnder.index != 1) {
                  game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
                  map.putTile(1, tileRightUnder.x, tileRightUnder.y);
                  }
-                 */
-
-            }
-            //справа копать
-            /*else if (game.input.keyboard.isDown(Phaser.KeyCode.X) && player.body.onFloor()) {
-
-             if (tileRightUnder.index == 0
-             && tileRightSide.index != 0
-             && tileRightUnder.index != 1) {
-             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-             map.putTile(1, tileRightUnder.x, tileRightUnder.y);
-             }
-
-             }*/
-            else if (game.input.keyboard.isDown(Phaser.KeyCode.Z)) {
-                if (tileLeftSide.index != 0 && tileLeftUnder.index == 0 && (tileUnderUnder.index == 0 || tileUnderUnder.index == 2)) {
-                    game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                    map.putTile(3, tileLeftUnder.x, tileLeftUnder.y);
-                }
-                /*if (tileLeftUnder.index == 0
-                 && tileLeftSide.index != 0
-                 && tileLeftUnder.index != 1) {
 
                  }*/
-            }
-            /*else if (game.input.keyboard.isDown(Phaser.KeyCode.Z) && player.body.onFloor()) {
-             if (tileLeftUnder.index == 0
-             && tileLeftSide.index != 0
-             && tileLeftUnder.index != 1) {
-             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-             map.putTile(1, tileLeftUnder.x, tileLeftUnder.y);
-             }
-             }*/
-            else if (game.input.keyboard.isDown(Phaser.KeyCode.G)) {
-                player.body.gravity.y = 11000;
-            }
-            else {
-                player.animations.stop();
-                player.frame = 4;
-            }
+                else if (game.input.keyboard.isDown(Phaser.KeyCode.Z)) {
+                    if (tileLeftSide.index != 0 && tileLeftUnder.index == 0 && (tileUnderUnder.index == 0 || tileUnderUnder.index == 2)) {
+                        game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                        map.putTile(3, tileLeftUnder.x, tileLeftUnder.y);
+                    }
+                    /*if (tileLeftUnder.index == 0
+                     && tileLeftSide.index != 0
+                     && tileLeftUnder.index != 1) {
 
-            if ((tileCurrent.index == 2 || tileUnderUnder.index == 2) && !cursors.up.isDown && !cursors.down.isDown) {
-                player.body.allowGravity = false;
-                //player.body.velocity.y=0;
-                game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-
-            }
-
-            if (!player.body.onFloor() /*|| tileUnderUnder.index == 1*/) {
-                if ((tileUnderUnder.index == 1 || tileUnderUnder.index == 3) && tileCurrent.index != 2) {//прыжок с обрыва
-                    player.body.velocity.x = 0;
-                    game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                    //game.add.tween(player).to({y: game.math.snapTo(player.y-64, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                    //player.body.x = game.math.snapTo(player.body.x, 64);
-                    player.body.allowGravity = true;
+                     }*/
                 }
-                else if ((tileUnderUnder.index == 0 || tileUnderUnder.index == 3) && tileCurrent.index != 2) {
-                    player.body.allowGravity = true;
+                /*else if (game.input.keyboard.isDown(Phaser.KeyCode.Z) && player.body.onFloor()) {
+                 if (tileLeftUnder.index == 0
+                 && tileLeftSide.index != 0
+                 && tileLeftUnder.index != 1) {
+                 game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                 map.putTile(1, tileLeftUnder.x, tileLeftUnder.y);
+                 }
+                 }*/
+                else if (game.input.keyboard.isDown(Phaser.KeyCode.G)) {
+                    player.body.gravity.y = 11000;
                 }
-                //here edited in the train
-                else if (tileCurrent.index == 1 && tileUnderUnder.index == 2 && !cursors.down.isDown) {
-                    player.body.velocity.y = 0;
+                else {
+                    player.animations.stop();
+                    player.frame = 4;
+                }
+
+                if ((tileCurrent.index == 2 || tileUnderUnder.index == 2) && !cursors.up.isDown && !cursors.down.isDown) {
+                    player.body.allowGravity = false;
+                    //player.body.velocity.y=0;
                     game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
 
                 }
-                if (player)
-                    socket.emit('keys', {
-                        clientID: clid,
-                        key: 'up',
-                        state: 'false',
-                        x: player.body.x,
-                        y: player.body.y,
-                        velocityX: player.body.velocity.x,
-                        velocityY: player.body.velocity.y
-                    });
-            }
-            else if (player.body.onFloor() && tileUnderUnder.index == 3 && tileCurrent.index != 2) {
 
-                game.add.tween(player).to({y: game.math.snapTo(player.y + 64, 64, 32)}, 50, Phaser.Easing.Linear.None, true);
-                player.body.allowGravity = true;
-                if (player)
-                    socket.emit('keys', {
-                        clientID: clid,
-                        key: 'up',
-                        state: 'false',
-                        x: player.body.x,
-                        y: player.body.y,
-                        velocityX: player.body.velocity.x,
-                        velocityY: player.body.velocity.y
-                    });
-            }
+                if (!player.body.onFloor() /*|| tileUnderUnder.index == 1*/) {
+                    if ((tileUnderUnder.index == 1 || tileUnderUnder.index == 3) && tileCurrent.index != 2) {//прыжок с обрыва
+                        player.body.velocity.x = 0;
+                        game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                        //game.add.tween(player).to({y: game.math.snapTo(player.y-64, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                        //player.body.x = game.math.snapTo(player.body.x, 64);
+                        player.body.allowGravity = true;
+                    }
+                    else if ((tileUnderUnder.index == 0 || tileUnderUnder.index == 3) && tileCurrent.index != 2) {
+                        player.body.allowGravity = true;
+                    }
+                    //here edited in the train
+                    else if (tileCurrent.index == 1 && tileUnderUnder.index == 2 && !cursors.down.isDown) {
+                        player.body.velocity.y = 0;
+                        game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
 
-            /*else if ( tileUnderUnder.index == 1) {
-             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-             console.log("111");
-             }
-             */
-            /*
-             if(player)
-             socket.emit('keys', {
-             clientID: clid,
-             key: 'up',
-             state: 'false',
-             x: player.body.x,
-             y: player.body.y,
-             velocityX: player.body.velocity.x,
-             velocityY: player.body.velocity.y
-             });
-             */
+                    }
+                    if (player !== undefined && player.id !== undefined)
+                        if (socket) socket.emit('keys', {
+                            clientID: player.id,
+                            key: 'up',
+                            state: 'false',
+                            x: player.body.x,
+                            y: player.body.y,
+                            velocityX: player.body.velocity.x,
+                            velocityY: player.body.velocity.y
+                        });
+                }
+                else if (player.body.onFloor() && tileUnderUnder.index == 3 && tileCurrent.index != 2) {
+
+                    game.add.tween(player).to({y: game.math.snapTo(player.y + 64, 64, 32)}, 50, Phaser.Easing.Linear.None, true);
+                    player.body.allowGravity = true;
+                    if (player !== undefined && player.id !== undefined)
+                        if (socket) socket.emit('keys', {
+                            clientID: player.id,
+                            key: 'up',
+                            state: 'false',
+                            x: player.body.x,
+                            y: player.body.y,
+                            velocityX: player.body.velocity.x,
+                            velocityY: player.body.velocity.y
+                        });
+                }
+
+                /*else if ( tileUnderUnder.index == 1) {
+                 game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                 console.log("111");
+                 }
+                 */
+            }
         }
 
         function render() {
@@ -512,113 +467,151 @@
              */
             // game.debug.text(collided, 10, 100);
 
-
-            game.debug.body(player);
-            for (let i in players) {
-                game.debug.body(players[i]);
-                console.log(players[i]);
-            }
-
+            if (player !== undefined && player.id !== undefined) game.debug.body(player);
+            if (players)
+                for (let i in players) {
+                    game.debug.body(players[i]);
+                    //  console.log(players[i]);
+                }
         }
 
-        ////////////////////////////////////////////////////////////////////////
-        socket.on('connected', function (data) {
-            //players[data.id] = player;
+        function playerEnemyCollision(player1, enemy) {
 
-
-            clid = data.id;
-            console.log('Получен id: ' + data.id);
-        });
-
-        socket.on('players', function (data) {
-            for (let i in players) {
-                players[i].destroy();
-            }
-            players = [];
-            /*packet.push({        id: playersList[i].id,
-             x: playersList[i].x,
-             y: playersList[i].y,
-             velocityX: playersList[i].velocityX,
-             velocityY: playersList[i].velocityY,
-             pressingButton: 'down'});*/
-            /*player = game.add.sprite(300, 6000, 'dude');
-             player.anchor.set(0.5);
-             game.physics.arcade.enable(player);
-             //player.body.TILE_BITS=64;
-             game.camera.follow(player);
-             player.body.gravity.y = 1000;
-
-             player.body.collideWorldBounds = true;
+            /*нужное ДЛЯ СТОЛКНОВЕНИЯ ИГРОКОВ
+             //player1.destroy();
+             //enemy.destroy();
+             if (player !== undefined && player.id !== undefined && !isPlayerEnemyCollision) {
+             socket.emit('playerEnemyCollision', {
+             enemyID: enemy.id,
+             });
+             player.id = undefined;
+             player.body.x = undefined;
+             player.body.y = undefined;
+             //delete player;
+             playersGroup.removeAll(true);
+             //$("#welcome").fadeToggle();
+             //$("#welcome").fadeOut();
+             //$("#welcome").fadeIn();
+             console.log('overlapped');
+             }
              */
-            for (let i = 0; i < data.length; i++) {
-                if (clid == data[i].id) {
-                    if (player) {//уже создан
-                        player.body.x = data[i].x;
-                        player.body.y = data[i].y;
-                        game.debug.body(player);
-                        //players[data[i].id].anchor.set(0.5);
-                        //game.physics.arcade.enable(player);
-                        //game.camera.follow(player);
-                        //player.body.gravity.y = 1000;
+        }
 
-                        //player.body.collideWorldBounds = true;
-                    } else {//ещё не создан
-                        player = game.add.sprite(data[i].x, data[i].y, 'dude');
-                        player.anchor.set(0.5);
-                        game.physics.arcade.enable(player);
-                        game.camera.follow(player);
-                        player.body.gravity.y = 1000;
-                        player.animations.add('left', [0, 1, 2, 3], 10, true);
-                        player.animations.add('right', [5, 6, 7, 8], 10, true);
-                    }
-                } else {
-                    if (players[data[i].id]) {//is
-                        if (playersGroup)
-                            players[data[i].id] = playersGroup.create(data[i].x, data[i].y, 'dude', 4);
+        ///RESPAWN
+        $("#play").click(() => {
+            $("#welcome").fadeOut();    //Скрыть главную страницу(страницу входа)
+            socket = io.connect('http://192.168.100.4');
 
-                        /*is
-                         players[data[i].id].x = data[i].x;
-                         players[data[i].id].y = data[i].y;
+
+            socket.on('connected', function (data) {
+                clid = data.id;
+            });
+
+            socket.on('disconnect', function (data) {
+                isPlayerEnemyCollision = false;
+                //player.kill();
+                delete players;
+                playersGroup.removeAll(true);
+
+                //playersGroup.destroy();
+                //player.kill();
+                //playersGroup.callAll('kill');//kill();
+                //$("#welcome").fadeToggle();
+                ///$("#welcome").fadeIn();
+                console.log('ОТ' +
+                    'ключен от сервера');
+            });
+
+            socket.on('players', function (data) {
+                        /*if (data.length) {
+                         let isAlive = false;
+                         for (let i in players) {
+
+                         for (let j in data) {
+                         if (players[i].id == data[j].id)
+                         isAlive = true;
+                         }
+                         if (!isAlive) playersGroup.destroy(players[i]);
+                         isAlive = false;
+                         }
+                         }
                          */
+                    playersGroup.removeAll(true);
+                    //delete players;
+                        /*packet.push({        id: playersList[i].id,
+                         x: playersList[i].x,
+                         y: playersList[i].y,
+                         velocityX: playersList[i].velocityX,
+                         velocityY: playersList[i].velocityY,
+                         pressingButton: 'down'});*/
 
-                        //players[data[i].id].anchor.set(0.5);
-                        //players[data[i].id].y = game.math.snapTo(data[i].y, 64, 32);
-                        //players[data[i].id].y = game.math.snapTo(data[i].y, 64, 32);
+                        /*player = game.add.sprite(300, 6000, 'dude');
+                         player.anchor.set(0.5);
+                         game.physics.arcade.enable(player);
+                         //player.body.TILE_BITS=64;
+                         game.camera.follow(player);
+                         player.body.gravity.y = 1000;
 
-                        /*                    players[data[i].id].body.velocity.x = data[i].velocityX;
-                         players[data[i].id].body.velocity.y = data[i].velocityY;
+                         player.body.collideWorldBounds = true;
                          */
-                    } else {
-                        if (playersGroup) {
-                            players[data[i].id] = playersGroup.create(data[i].x, data[i].y, 'dude', 4);
-                            players[data[i].id].id = data[i].id;
+                    for (let i = 0; i < data.length; i++) {
+                        if (clid == data[i].id) {//если это коорд игрока
+                            if (player !== undefined && player.id !== undefined) {   //уже есть игрок
+                                /////player.body.x = data[i].x;
+                                //// player.body.y = data[i].y;
+
+                                //players[data[i].id].anchor.set(0.5);
+                                //game.physics.arcade.enable(player);
+                                //game.camera.follow(player);
+                                //player.body.gravity.y = 1000;
+
+                                //player.body.collideWorldBounds = true;
+                            } else {//ещё не создан
+                                player = game.add.sprite(data[i].x, data[i].y, 'dude');
+                                player.anchor.set(0.5);
+                                game.physics.arcade.enable(player);
+                                game.camera.follow(player);
+                                player.body.gravity.y = 1000;
+                                player.animations.add('left', [0, 1, 2, 3], 10, true);
+                                player.animations.add('right', [5, 6, 7, 8], 10, true);
+                                game.debug.body(player);
+                                player.id = clid;//ПРименяем новый id
+                                console.log('Применён новый id: ' + player.id + '___' + clid);
+                            }
                         }
-                        /*is
-                         players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
-                         game.physics.arcade.enable(players[data[i].id]);
-                         players[data[i].id].animations.add('left', [0, 1, 2, 3], 10, true);
-                         players[data[i].id].animations.add('right', [5, 6, 7, 8], 10, true);
-                         players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
-                         players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
-                         */
-                        //game.physics.enable( players[data[i].id] , Phaser.Physics.ARCADE);
+                        else {                //если противники
 
-                        //players[data[i].id].animations.play('right');
+                            if (players[data[i].id]) {
+                                players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                                players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                            } else {
+                                players[data[i].id] = playersGroup.create(data[i].x, data[i].y, 'dude', 4);
+                                players[data[i].id].id = data[i].id;
+                            }
+                            /*is
+                             players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
+                             game.physics.arcade.enable(players[data[i].id]);
+                             players[data[i].id].animations.add('left', [0, 1, 2, 3], 10, true);
+                             players[data[i].id].animations.add('right', [5, 6, 7, 8], 10, true);
+                             players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                             players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                             */
+                            //game.physics.enable( players[data[i].id] , Phaser.Physics.ARCADE);
+                            //players[data[i].id].animations.play('right');
+                            //players[data[i].id].anchor.set(0.5);
+                            //game.physics.arcade.enable(players[data[i].id]);
+                            //players[data[i].id].body.gravity.y = 1000;
+                            /*
+                             players[data[i].id].body.velocity.x = data[i].velocityX;
+                             players[data[i].id].body.velocity.y = data[i].velocityY;
+                             */
 
-
-                        //players[data[i].id].anchor.set(0.5);
-                        //game.physics.arcade.enable(players[data[i].id]);
-                        //players[data[i].id].body.gravity.y = 1000;
-                        /*
-                         players[data[i].id].body.velocity.x = data[i].velocityX;
-                         players[data[i].id].body.velocity.y = data[i].velocityY;
-                         */
+                        }
                     }
                 }
-            }
+            );
+
         });
-
-
     });
     /*socket.on('move', function (data) {
 
@@ -632,16 +625,3 @@
 </script>
 </body>
 </html>
-
-
-<!--
-Player
-x
-y
-rightDown
-leftDown
-UpDown
-DownDown
-digging
-fly
--->

@@ -88,14 +88,15 @@ io.on('connection', function (socket) {
     });
     socket.on('playerEnemyCollision', (data) => {//data.enemyID, socket
         "use strict";
-        if (Math.abs(playersList [socket.id].x - playersList[data.enemyID].x) < 128
-            && Math.abs(playersList [socket.id].y - playersList[data.enemyID].y) < 128
-        )
-            requestQueue.push({
-                type: 'collisionPlayerEnemy',
-                socket: socket,
-                enemyID: data.clientID
-            })
+        if (playersList [socket.id] && playersList[data.enemyID])    //если оба ещё есть в списке игроков
+            if (Math.abs(playersList [socket.id].x - playersList[data.enemyID].x) < 128
+                && Math.abs(playersList [socket.id].y - playersList[data.enemyID].y) < 128
+            )
+                requestQueue.push({
+                    type: 'collisionPlayerEnemy',
+                    socket: socket,
+                    enemyID: data.enemyID
+                })
     });
     /*
      socket.on('keyState', function (key) {//кнопка ужерживвается
@@ -194,8 +195,9 @@ var connect = (message) => {
 };
 var disconnect = (message) => {
     'use strict';    //requestQueue.push({type: 'disconnect', socket: socket});
-    //delete socketsList[message.socket.id];
+    //delete socketsList[message.socket.id];zzzzz
     delete playersList[message.socket.id];
+    delete socketsList[message.socket.id];
 
     /*
      let sock=new Promise(()=>{
@@ -208,7 +210,8 @@ var disconnect = (message) => {
      message.socket.disconnect();
      console.log('Отсоединился игрок с id ' + message.socket.id);
      });
-     */ //console.log('Отсоединился игрок с id ' + message.socket.id);
+     */
+    console.log('Отсоединился игрок с id ' + message.socket.id);
 
 
 };
@@ -246,9 +249,12 @@ var keys = (message) => {
 var collisionPlayerEnemy = (message) => {
     'use strict';
     //            requestQueue.push({type: 'collisionPlayerEnemy', socket:socket, enemyID: data.clientID})
-    delete playersList[message.enemyID];
-    delete playersList[message.socket.id];
-    message.socket.disconnect(true);
+    playersList.splice(message.enemyID, 1);
+    playersList.splice(message.socket.id, 1);
+    //delete playersList[message.enemyID];
+    //delete playersList[message.socket.id];
+    message.socket.disconnect();
+    socketsList[message.enemyID].disconnect();
 };
 
 /*
