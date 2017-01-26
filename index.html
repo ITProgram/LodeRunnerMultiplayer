@@ -19,7 +19,7 @@
 
 </script>
 <div id="welcome" style="background-color: darkblue;position: absolute;width: 100%;height: 100%;">
-    <input id="play" type="button" value="Play">
+    <input id="play" type="button" value="Play" autofocus>
 
 
 </div>
@@ -27,12 +27,6 @@
 <script type="text/javascript">
     $(document).ready(() => {
 
-
-        var socket;//var socket = io.connect('http://192.168.100.4');
-        var players = [];
-        var playersGroup = [];
-        const VELOCITY = 256;
-        var sizeX = 1920;
         /*var SAFE_ZONE_WIDTH = 1920;
          var SAFE_ZONE_HEIGHT = 1080;
          var w = window.innerWidth;//* pixelRatio,
@@ -62,6 +56,11 @@
          //var game = new Phaser.Game(SAFE_ZONE_WIDTH + extraWidth, SAFE_ZONE_HEIGHT + extraHeight, Phaser.CANVAS, 'game_div');
 
          */
+        const VELOCITY = 256;
+        var socket;//var socket = io.connect('http://192.168.100.4');
+        var players = [];
+        var playersGroup = [];
+        var sizeX = 1920;
         var sizeY = 1080;
         var aspectRatio = window.innerWidth / window.innerHeight;
         if (aspectRatio != 1920 / 1080 || aspectRatio != 1080 / 1920) {
@@ -83,7 +82,6 @@
         var tileLeftUnder;
         var isPlayerEnemyCollision = false;
 
-        //create game world
         var game = new Phaser.Game(sizeX, sizeY, Phaser.CANVAS, '', {
             preload: preload,
             create: create,
@@ -115,69 +113,87 @@
             cursors = game.input.keyboard.createCursorKeys();
             game.physics.startSystem(Phaser.Physics.ARCADE);
 
-            playersGroup = game.add.group();
+            //playersGroup = game.add.group();
             //playersGroup = game.add.physicsGroup();
+
+            player = game.add.sprite(256, 5750, 'dude');
+            player.anchor.set(0.5);
+            game.camera.follow(player);
+
+            player.animations.add('left', [0, 1, 2, 3], 10, true);
+            player.animations.add('right', [5, 6, 7, 8], 10, true);
+
+
+            game.physics.arcade.enable(player);
+            //////
+            player.body.gravity.y = 1000;
+            player.body.enable = false;
+
+            game.debug.body(player);
+            //player.id = clid;//ПРименяем новый id
+
 
             game.input.keyboard.onUpCallback = (e) => {
                 //geme.input.enbled=true;
                 //({type: 'keys', clientID: data.clientID, key: data.key, state: data.state,   data.velocityX, data.velocityY})
                 //если игрок создан - тогда обрабатывать отжатия клавиш
+                if (player.body.enable && player.id !== undefined) {
+                    if (e.keyCode == cursors.right.keyCode) {
+                        player.body.velocity.x = 0;
+                        //game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
 
-                if (e.keyCode == cursors.right.keyCode) {
-                    player.body.velocity.x = 0;
-                    //game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-
-                    if (socket) socket.emit('keys', {
-                        clientID: player.id,
-                        key: 'right',
-                        state: 'false',
-                        x: player.body.x,
-                        y: player.body.y,
-                        velocityX: player.body.velocity.x,
-                        velocityY: player.body.velocity.y
-                    });
-                } else if (e.keyCode == cursors.left.keyCode) {
-                    player.body.velocity.x = 0;
-                    //             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                    if (socket) socket.emit('keys', {
-                        clientID: player.id,
-                        key: 'right',
-                        state: 'false',
-                        x: player.body.x,
-                        y: player.body.y,
-                        velocityX: player.body.velocity.x,
-                        velocityY: player.body.velocity.y
-                    });
-                } else if (e.keyCode == cursors.up.keyCode) {
-                    if (player.body.allowGravity != true) {
-                        game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                        player.body.velocity.y = 0;
+                        if (socket) socket.emit('keys', {
+                            clientID: player.id,
+                            key: 'right',
+                            state: 'false',
+                            x: player.body.x,
+                            y: player.body.y,
+                            velocityX: player.body.velocity.x,
+                            velocityY: player.body.velocity.y
+                        });
+                    } else if (e.keyCode == cursors.left.keyCode) {
+                        player.body.velocity.x = 0;
+                        //             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                        if (socket) socket.emit('keys', {
+                            clientID: player.id,
+                            key: 'right',
+                            state: 'false',
+                            x: player.body.x,
+                            y: player.body.y,
+                            velocityX: player.body.velocity.x,
+                            velocityY: player.body.velocity.y
+                        });
+                    } else if (e.keyCode == cursors.up.keyCode) {
+                        if (player.body.allowGravity != true) {
+                            game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                            player.body.velocity.y = 0;
+                        }
+                        if (socket) socket.emit('keys', {
+                            clientID: player.id,
+                            key: 'right',
+                            state: 'false',
+                            x: player.body.x,
+                            y: player.body.y,
+                            velocityX: player.body.velocity.x,
+                            velocityY: player.body.velocity.y
+                        });
+                    } else if (e.keyCode == cursors.down.keyCode) {
+                        if (player.body.allowGravity != true) {
+                            game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
+                            player.body.velocity.y = 0;
+                        }
+                        if (socket) socket.emit('keys', {
+                            clientID: player.id,
+                            key: 'right',
+                            state: 'false',
+                            x: player.body.x,
+                            y: player.body.y,
+                            velocityX: player.body.velocity.x,
+                            velocityY: player.body.velocity.y
+                        });
+                    } else if (e.keyCode == Phaser.KeyCode.G) {
+                        player.body.gravity.y = 1000;
                     }
-                    if (socket) socket.emit('keys', {
-                        clientID: player.id,
-                        key: 'right',
-                        state: 'false',
-                        x: player.body.x,
-                        y: player.body.y,
-                        velocityX: player.body.velocity.x,
-                        velocityY: player.body.velocity.y
-                    });
-                } else if (e.keyCode == cursors.down.keyCode) {
-                    if (player.body.allowGravity != true) {
-                        game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                        player.body.velocity.y = 0;
-                    }
-                    if (socket) socket.emit('keys', {
-                        clientID: player.id,
-                        key: 'right',
-                        state: 'false',
-                        x: player.body.x,
-                        y: player.body.y,
-                        velocityX: player.body.velocity.x,
-                        velocityY: player.body.velocity.y
-                    });
-                } else if (e.keyCode == Phaser.KeyCode.G) {
-                    player.body.gravity.y = 1000;
                 }
 
 
@@ -186,10 +202,10 @@
         }
 
         function update() {
-            if (player !== undefined && player.id !== undefined) {
-                if (game.physics.arcade.collide(player, playersGroup, playerEnemyCollision, null, this))
-                //if (game.physics.arcade.overlap(player, players, playerEnemyCollision, null, this))
-                    isPlayerEnemyCollision = true;
+            if (player.body.enable && player.id !== undefined) {
+                //if (game.physics.arcade.collide(player, players, playerEnemyCollision, null, this))
+                if (game.physics.arcade.overlap(player, players, playerEnemyCollision, null, this))
+                    console.log('overlapped');//isPlayerEnemyCollision = true;
 
                 var collideSprvsLayer = game.physics.arcade.collide(player, layer);
 
@@ -492,58 +508,39 @@
              //$("#welcome").fadeToggle();
              //$("#welcome").fadeOut();
              //$("#welcome").fadeIn();
-             console.log('overlapped');
+
              }
              */
+            console.log('overlapped');
         }
 
         ///RESPAWN
         $("#play").click(() => {
             $("#welcome").fadeOut();    //Скрыть главную страницу(страницу входа)
-            socket = io.connect('http://192.168.100.4');
+            socket = io.connect('http://192.168.100.2');
 
 
             socket.on('connected', function (data) {
+
+                player.id = data.id;
                 clid = data.id;
+                console.log('Применён новый id: ' + player.id);
             });
 
             socket.on('disconnect', function (data) {
                 isPlayerEnemyCollision = false;
                 //player.kill();
                 delete players;
-                playersGroup.removeAll(true);
+                //playersGroup.removeAll(true);
 
-                //playersGroup.destroy();
-                //player.kill();
-                //playersGroup.callAll('kill');//kill();
                 //$("#welcome").fadeToggle();
                 ///$("#welcome").fadeIn();
-                console.log('ОТ' +
-                    'ключен от сервера');
+                console.log('ОТключен от сервера');
             });
 
             socket.on('players', function (data) {
-                        /*if (data.length) {
-                         let isAlive = false;
-                         for (let i in players) {
-
-                         for (let j in data) {
-                         if (players[i].id == data[j].id)
-                         isAlive = true;
-                         }
-                         if (!isAlive) playersGroup.destroy(players[i]);
-                         isAlive = false;
-                         }
-                         }
-                         */
-                    playersGroup.removeAll(true);
+                //playersGroup.removeAll(true);
                     //delete players;
-                        /*packet.push({        id: playersList[i].id,
-                         x: playersList[i].x,
-                         y: playersList[i].y,
-                         velocityX: playersList[i].velocityX,
-                         velocityY: playersList[i].velocityY,
-                         pressingButton: 'down'});*/
 
                         /*player = game.add.sprite(300, 6000, 'dude');
                          player.anchor.set(0.5);
@@ -555,29 +552,30 @@
                          player.body.collideWorldBounds = true;
                          */
                     for (let i = 0; i < data.length; i++) {
-                        if (clid == data[i].id) {//если это коорд игрока
-                            if (player !== undefined && player.id !== undefined) {   //уже есть игрок
-                                /////player.body.x = data[i].x;
-                                //// player.body.y = data[i].y;
+                        if (player.id == data[i].id) {//если это коорд игрока
+                            //уже есть игрок
+                            player.body.x = data[i].x;
+                            player.body.y = data[i].y;
+                            if (!player.body.enable)
+                                player.body.enable = true;
+                            //players[data[i].id].anchor.set(0.5);
+                            //game.physics.arcade.enable(player);
+                            //game.camera.follow(player);
+                            //player.body.gravity.y = 1000;
 
-                                //players[data[i].id].anchor.set(0.5);
-                                //game.physics.arcade.enable(player);
-                                //game.camera.follow(player);
-                                //player.body.gravity.y = 1000;
+                            //player.body.collideWorldBounds = true;
+                            /*else {//ещё не создан
+                             player = game.add.sprite(data[i].x, data[i].y, 'dude');
+                             player.anchor.set(0.5);
+                             game.physics.arcade.enable(player);
+                             game.camera.follow(player);
+                             player.body.gravity.y = 1000;
+                             player.animations.add('left', [0, 1, 2, 3], 10, true);
+                             player.animations.add('right', [5, 6, 7, 8], 10, true);
+                             game.debug.body(player);
+                             player.id = clid;//ПРименяем новый id
 
-                                //player.body.collideWorldBounds = true;
-                            } else {//ещё не создан
-                                player = game.add.sprite(data[i].x, data[i].y, 'dude');
-                                player.anchor.set(0.5);
-                                game.physics.arcade.enable(player);
-                                game.camera.follow(player);
-                                player.body.gravity.y = 1000;
-                                player.animations.add('left', [0, 1, 2, 3], 10, true);
-                                player.animations.add('right', [5, 6, 7, 8], 10, true);
-                                game.debug.body(player);
-                                player.id = clid;//ПРименяем новый id
-                                console.log('Применён новый id: ' + player.id + '___' + clid);
-                            }
+                             }*/
                         }
                         else {                //если противники
 
@@ -585,8 +583,10 @@
                                 players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
                                 players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
                             } else {
-                                players[data[i].id] = playersGroup.create(data[i].x, data[i].y, 'dude', 4);
+                                players[data[i].id] = game.add.sprite(data[i].x, data[i].y, 'dude', 4);
+                                game.physics.arcade.enable(players[data[i].id]);
                                 players[data[i].id].id = data[i].id;
+                                players.length++;
                             }
                             /*is
                              players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
