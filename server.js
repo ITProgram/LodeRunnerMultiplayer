@@ -69,12 +69,16 @@ io.on('connection', function (socket) {
 
     socket.on('keys', (data) => {//data.key, data.state, data.clientID
         "use strict";
-        if (data.key === 'right'
+        if ((data.key === 'right'
             || data.key === 'left'
             || data.key === 'up'
             || data.key === 'down'
             || data.key === 'x'
             || data.key === 'z')
+        /*&& (Math.abs(playersList [data.clientID].x - data.x) < 128)
+         && (Math.abs(playersList [data.clientID].y - data.y) < 128)
+         */
+        )
             requestQueue.push({
                 type: 'keys',
                 clientID: data.clientID,
@@ -249,10 +253,10 @@ var keys = (message) => {
 var collisionPlayerEnemy = (message) => {
     'use strict';
     //            requestQueue.push({type: 'collisionPlayerEnemy', socket:socket, enemyID: data.clientID})
-    playersList.splice(message.enemyID, 1);
-    playersList.splice(message.socket.id, 1);
-    //delete playersList[message.enemyID];
-    //delete playersList[message.socket.id];
+    //playersList.splice(message.enemyID, 1);
+    //playersList.splice(message.socket.id, 1);
+    delete playersList[message.enemyID];
+    delete playersList[message.socket.id];
     message.socket.disconnect();
     socketsList[message.enemyID].disconnect();
 };
@@ -294,21 +298,6 @@ var collisionPlayerEnemy = (message) => {
 
 
  //отправлять координаты игроков только в четверти часьи мира
- 1. подключается
- сервер отправляет ему id
- и добавляет его в список игроков
-
- 2.
-
-
-
-
- цикл сервера
- отправка  параметров всем игроков всем
-
-
-
-
 
 
 

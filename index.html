@@ -18,7 +18,7 @@
 <script>
 
 </script>
-<div id="welcome" style="background-color: darkblue;position: absolute;width: 100%;height: 100%;">
+<div id="welcome" style="position: absolute;width: 100%;height: 100%;">
     <input id="play" type="button" value="Play" autofocus>
 
 
@@ -142,7 +142,7 @@
                         player.body.velocity.x = 0;
                         //game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
 
-                        if (socket) socket.emit('keys', {
+                        if (socket && player.id) socket.emit('keys', {
                             clientID: player.id,
                             key: 'right',
                             state: 'false',
@@ -154,7 +154,7 @@
                     } else if (e.keyCode == cursors.left.keyCode) {
                         player.body.velocity.x = 0;
                         //             game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
-                        if (socket) socket.emit('keys', {
+                        if (socket && player.id) socket.emit('keys', {
                             clientID: player.id,
                             key: 'right',
                             state: 'false',
@@ -168,7 +168,7 @@
                             game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
                             player.body.velocity.y = 0;
                         }
-                        if (socket) socket.emit('keys', {
+                        if (socket && player.id) socket.emit('keys', {
                             clientID: player.id,
                             key: 'right',
                             state: 'false',
@@ -182,7 +182,7 @@
                             game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
                             player.body.velocity.y = 0;
                         }
-                        if (socket) socket.emit('keys', {
+                        if (socket && player.id) socket.emit('keys', {
                             clientID: player.id,
                             key: 'right',
                             state: 'false',
@@ -204,8 +204,10 @@
         function update() {
             if (player.body.enable && player.id !== undefined) {
                 //if (game.physics.arcade.collide(player, players, playerEnemyCollision, null, this))
-                if (game.physics.arcade.overlap(player, players, playerEnemyCollision, null, this))
-                    console.log('overlapped');//isPlayerEnemyCollision = true;
+                if (game.physics.arcade.overlap(player, players, playerEnemyCollision, null, this)) {
+                    console.log('overlapped');
+                    isPlayerEnemyCollision = true;
+                }
 
                 var collideSprvsLayer = game.physics.arcade.collide(player, layer);
 
@@ -221,7 +223,7 @@
                 if (cursors.left.isDown) {//&& player.body.onFloor()
                     player.body.velocity.x = -VELOCITY;
                     player.animations.play('left');
-                    if (socket) socket.emit('keys', {
+                    if (socket && player.id) socket.emit('keys', {
                         clientID: player.id,
                         key: 'left',
                         state: 'false',
@@ -242,7 +244,7 @@
                      });
                      */
                     player.animations.play('right');
-                    if (socket) socket.emit('keys', {
+                    if (socket && player.id) socket.emit('keys', {
                         clientID: player.id,
                         key: 'right',
                         state: 'false',
@@ -290,7 +292,7 @@
                         game.add.tween(player).to({y: game.math.snapTo(player.y, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
 
                     }//player.body.touching.down**
-                    if (socket) socket.emit('keys', {
+                    if (socket && player.id) socket.emit('keys', {
                         clientID: player.id,
                         key: 'up',
                         state: 'false',
@@ -320,7 +322,7 @@
                         game.add.tween(player).to({x: game.math.snapTo(player.x, 64, 32)}, 1, Phaser.Easing.Linear.None, true);
                     }
                     //socket.emit('keyEvent', {name: 'down', state: 'true', x: player.body.x, y: player.body.y});
-                    if (socket) socket.emit('keys', {
+                    if (socket && player.id) socket.emit('keys', {
                         clientID: player.id,
                         key: 'down',
                         state: 'false',
@@ -421,7 +423,7 @@
 
                     }
                     if (player !== undefined && player.id !== undefined)
-                        if (socket) socket.emit('keys', {
+                        if (socket && player.id) socket.emit('keys', {
                             clientID: player.id,
                             key: 'up',
                             state: 'false',
@@ -436,7 +438,7 @@
                     game.add.tween(player).to({y: game.math.snapTo(player.y + 64, 64, 32)}, 50, Phaser.Easing.Linear.None, true);
                     player.body.allowGravity = true;
                     if (player !== undefined && player.id !== undefined)
-                        if (socket) socket.emit('keys', {
+                        if (socket && player.id) socket.emit('keys', {
                             clientID: player.id,
                             key: 'up',
                             state: 'false',
@@ -493,52 +495,158 @@
 
         function playerEnemyCollision(player1, enemy) {
 
-            /*нужное ДЛЯ СТОЛКНОВЕНИЯ ИГРОКОВ
-             //player1.destroy();
-             //enemy.destroy();
-             if (player !== undefined && player.id !== undefined && !isPlayerEnemyCollision) {
-             socket.emit('playerEnemyCollision', {
-             enemyID: enemy.id,
-             });
-             player.id = undefined;
-             player.body.x = undefined;
-             player.body.y = undefined;
-             //delete player;
-             playersGroup.removeAll(true);
-             //$("#welcome").fadeToggle();
-             //$("#welcome").fadeOut();
-             //$("#welcome").fadeIn();
+            /*нужное
+             ДЛЯ
+             СТОЛКНОВЕНИЯ
+             ИГРОКОВ
+             *///player1.destroy();
+            //enemy.destroy();
+            if (player !== undefined && player.id !== undefined && !isPlayerEnemyCollision) {
+                socket.emit('playerEnemyCollision', {
+                    enemyID: enemy.id,
+                });
+                player.id = undefined;
+                player.body.enable = false;
+                //player.body.y = undefined;
+                //delete player;
+                for (let i in players) {
+                    players[i].destroy();
+                }
+                //playersGroup.removeAll(true);
+                //$("#welcome").fadeToggle();
+                //$("#welcome").fadeOut();
+                $("#play").fadeIn();
 
-             }
-             */
+            }
+
             console.log('overlapped');
         }
 
         ///RESPAWN
         $("#play").click(() => {
-            $("#welcome").fadeOut();    //Скрыть главную страницу(страницу входа)
+            $("#play").fadeOut();    //Скрыть главную страницу(страницу входа)
             socket = io.connect('http://192.168.100.2');
 
 
             socket.on('connected', function (data) {
-
                 player.id = data.id;
                 clid = data.id;
                 console.log('Применён новый id: ' + player.id);
+                isPlayerEnemyCollision = false;
             });
 
             socket.on('disconnect', function (data) {
                 isPlayerEnemyCollision = false;
-                //player.kill();
-                delete players;
-                //playersGroup.removeAll(true);
-
+                player.body.enable = false;
+                player.x = 288;
+                player.y = 5664;
+                player.body.velocity.x = 0;
+                player.body.velocity.y = 0;
+                for (let i in players) {
+                    players[i].destroy();
+                    delete players[i];
+                }
                 //$("#welcome").fadeToggle();
-                ///$("#welcome").fadeIn();
-                console.log('ОТключен от сервера');
+                $("#play").fadeIn();
+                console.log('Отключен от сервера socket DISCONNECT');
             });
 
+            function deletePlayers(data, callbackAddPlayers) {
+
+                for (let i in players) {
+                    let ind = -1;
+                    for (let j in data)
+                        if (players[i].id === data[j].id)
+                            ind = i;
+                    if (ind < 0)
+                        players[i].destroy();
+                }
+                callbackAddPlayers(data);
+            }
+
+            function addPlayers(data) {
+                for (let i = 0; i < data.length; i++) {
+                    if (player.id == data[i].id) {//если это коорд игрока
+                        //уже есть игрок
+                        player.body.x = data[i].x;
+                        player.body.y = data[i].y;
+                        if (!player.body.enable)
+                            player.body.enable = true;
+                        //players[data[i].id].anchor.set(0.5);
+                        //game.physics.arcade.enable(player);
+                        //game.camera.follow(player);
+                        //player.body.gravity.y = 1000;
+
+                        //player.body.collideWorldBounds = true;
+                        /*else {//ещё не создан
+                         player = game.add.sprite(data[i].x, data[i].y, 'dude');
+                         player.anchor.set(0.5);
+                         game.physics.arcade.enable(player);
+                         game.camera.follow(player);
+                         player.body.gravity.y = 1000;
+                         player.animations.add('left', [0, 1, 2, 3], 10, true);
+                         player.animations.add('right', [5, 6, 7, 8], 10, true);
+                         game.debug.body(player);
+                         player.id = clid;//ПРименяем новый id
+
+                         }*/
+                    }
+                    else {                //если противники
+                        //players.push( game.add.sprite(data[i].x, data[i].y, 'dude', 4));
+                        let ind = -1;
+                        for (let j in players)
+                            if (players[j].id === data[i].id) {
+                                ind = j;
+                            }
+                        if (ind > -1) {
+                            players[ind].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                            players[ind].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                        } else {
+
+                            let len = players.push(game.add.sprite(data[i].x, data[i].y, 'dude', 4));
+
+                            players[len - 1].id = data[i].id;
+                            game.physics.arcade.enable(players[len - 1]);
+                        }
+
+
+                        /*
+                         if (players[data[i].id]) {
+                         players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                         players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                         } else {
+                         players[data[i].id] =game.add.sprite(data[i].x, data[i].y, 'dude', 4);
+                         game.physics.arcade.enable(players[data[i].id]);
+                         players[data[i].id].id = data[i].id;
+                         players.length++;
+                         }*/
+                        /*is
+                         players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
+                         game.physics.arcade.enable(players[data[i].id]);
+                         players[data[i].id].animations.add('left', [0, 1, 2, 3], 10, true);
+                         players[data[i].id].animations.add('right', [5, 6, 7, 8], 10, true);
+                         players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                         players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                         */
+                        //game.physics.enable( players[data[i].id] , Phaser.Physics.ARCADE);
+                        //players[data[i].id].animations.play('right');
+                        //players[data[i].id].anchor.set(0.5);
+                        //game.physics.arcade.enable(players[data[i].id]);
+                        //players[data[i].id].body.gravity.y = 1000;
+                        /*
+                         players[data[i].id].body.velocity.x = data[i].velocityX;
+                         players[data[i].id].body.velocity.y = data[i].velocityY;
+                         */
+
+                    }
+                }
+            }
+
             socket.on('players', function (data) {
+                deletePlayers(data, addPlayers);
+                //for (let i in players)
+                //  players[i].destroy();
+
                 //playersGroup.removeAll(true);
                     //delete players;
 
@@ -551,63 +659,82 @@
 
                          player.body.collideWorldBounds = true;
                          */
-                    for (let i = 0; i < data.length; i++) {
-                        if (player.id == data[i].id) {//если это коорд игрока
-                            //уже есть игрок
-                            player.body.x = data[i].x;
-                            player.body.y = data[i].y;
-                            if (!player.body.enable)
-                                player.body.enable = true;
-                            //players[data[i].id].anchor.set(0.5);
-                            //game.physics.arcade.enable(player);
-                            //game.camera.follow(player);
-                            //player.body.gravity.y = 1000;
 
-                            //player.body.collideWorldBounds = true;
-                            /*else {//ещё не создан
-                             player = game.add.sprite(data[i].x, data[i].y, 'dude');
-                             player.anchor.set(0.5);
-                             game.physics.arcade.enable(player);
-                             game.camera.follow(player);
-                             player.body.gravity.y = 1000;
-                             player.animations.add('left', [0, 1, 2, 3], 10, true);
-                             player.animations.add('right', [5, 6, 7, 8], 10, true);
-                             game.debug.body(player);
-                             player.id = clid;//ПРименяем новый id
+                /*for (let i = 0; i < data.length; i++) {
+                 if (player.id == data[i].id) {//если это коорд игрока
+                 //уже есть игрок
+                 player.body.x = data[i].x;
+                 player.body.y = data[i].y;
+                 if (!player.body.enable)
+                 player.body.enable = true;
+                 //players[data[i].id].anchor.set(0.5);
+                 //game.physics.arcade.enable(player);
+                 //game.camera.follow(player);
+                 //player.body.gravity.y = 1000;
 
-                             }*/
-                        }
-                        else {                //если противники
+                 //player.body.collideWorldBounds = true;
+                 /*else {//ещё не создан
+                 player = game.add.sprite(data[i].x, data[i].y, 'dude');
+                 player.anchor.set(0.5);
+                 game.physics.arcade.enable(player);
+                 game.camera.follow(player);
+                 player.body.gravity.y = 1000;
+                 player.animations.add('left', [0, 1, 2, 3], 10, true);
+                 player.animations.add('right', [5, 6, 7, 8], 10, true);
+                 game.debug.body(player);
+                 player.id = clid;//ПРименяем новый id
 
-                            if (players[data[i].id]) {
-                                players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
-                                players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
-                            } else {
-                                players[data[i].id] = game.add.sprite(data[i].x, data[i].y, 'dude', 4);
-                                game.physics.arcade.enable(players[data[i].id]);
-                                players[data[i].id].id = data[i].id;
-                                players.length++;
-                            }
-                            /*is
-                             players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
-                             game.physics.arcade.enable(players[data[i].id]);
-                             players[data[i].id].animations.add('left', [0, 1, 2, 3], 10, true);
-                             players[data[i].id].animations.add('right', [5, 6, 7, 8], 10, true);
-                             players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
-                             players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
-                             */
-                            //game.physics.enable( players[data[i].id] , Phaser.Physics.ARCADE);
-                            //players[data[i].id].animations.play('right');
-                            //players[data[i].id].anchor.set(0.5);
-                            //game.physics.arcade.enable(players[data[i].id]);
-                            //players[data[i].id].body.gravity.y = 1000;
-                            /*
-                             players[data[i].id].body.velocity.x = data[i].velocityX;
-                             players[data[i].id].body.velocity.y = data[i].velocityY;
-                             */
+                 }*
+                 }
+                 else {                //если противники
+                 //players.push( game.add.sprite(data[i].x, data[i].y, 'dude', 4));
+                 let ind=-1;
+                 for (let j in players)
+                 if (players[j].id === data[i].id) {
+                 ind = j;
+                 }
+                 if (ind>-1) {
+                 players[ind].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                 players[ind].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                 } else {
 
-                        }
-                    }
+                 let len=players.push(game.add.sprite(data[i].x, data[i].y, 'dude', 4));
+
+                 players[len-1].id=data[i].id;
+                 game.physics.arcade.enable(players[len-1]);
+                 }
+
+
+                 *
+                 if (players[data[i].id]) {
+                 players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                 players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                 } else {
+                 players[data[i].id] =game.add.sprite(data[i].x, data[i].y, 'dude', 4);
+                 game.physics.arcade.enable(players[data[i].id]);
+                 players[data[i].id].id = data[i].id;
+                 players.length++;
+                 }*
+                 /*is
+                 players[data[i].id] = game.add.sprite(game.math.snapTo(data[i].x, 64, 32), game.math.snapTo(data[i].y, 64, 32), 'dude');
+                 game.physics.arcade.enable(players[data[i].id]);
+                 players[data[i].id].animations.add('left', [0, 1, 2, 3], 10, true);
+                 players[data[i].id].animations.add('right', [5, 6, 7, 8], 10, true);
+                 players[data[i].id].x = data[i].x;//game.math.snapTo(data[i].x, 64, 32);
+                 players[data[i].id].y = data[i].y;//game.math.snapTo(data[i].y, 64, 32);
+                 *
+                 //game.physics.enable( players[data[i].id] , Phaser.Physics.ARCADE);
+                 //players[data[i].id].animations.play('right');
+                 //players[data[i].id].anchor.set(0.5);
+                 //game.physics.arcade.enable(players[data[i].id]);
+                 //players[data[i].id].body.gravity.y = 1000;
+                 *
+                 players[data[i].id].body.velocity.x = data[i].velocityX;
+                 players[data[i].id].body.velocity.y = data[i].velocityY;
+                 *
+
+                 }
+                 }*/
                 }
             );
 
